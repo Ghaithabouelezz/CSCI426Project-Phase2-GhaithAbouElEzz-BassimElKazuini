@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/CSCI426-Bassim-Ghaith-project/static/css/main.2eccb8cc.css",
+    "main.js": "/CSCI426-Bassim-Ghaith-project/static/js/main.1bb48475.js",
+    "static/js/453.11936110.chunk.js": "/CSCI426-Bassim-Ghaith-project/static/js/453.11936110.chunk.js",
+    "static/media/image.webp": "/CSCI426-Bassim-Ghaith-project/static/media/image.d09e8030e0525d485cd8.webp",
+    "index.html": "/CSCI426-Bassim-Ghaith-project/index.html",
+    "main.2eccb8cc.css.map": "/CSCI426-Bassim-Ghaith-project/static/css/main.2eccb8cc.css.map",
+    "main.1bb48475.js.map": "/CSCI426-Bassim-Ghaith-project/static/js/main.1bb48475.js.map",
+    "453.11936110.chunk.js.map": "/CSCI426-Bassim-Ghaith-project/static/js/453.11936110.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2eccb8cc.css",
+    "static/js/main.1bb48475.js"
+  ]
+}

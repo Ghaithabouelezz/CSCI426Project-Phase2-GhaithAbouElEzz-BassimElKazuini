@@ -1,260 +1,348 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '../Styles/Library.css';
 import Navbar from '../Components/NavBar';
+import { 
+  getBooks, 
+  searchBooks, 
+  filterBooksByGenre,
+  addToCart as addToCartAPI,
+  getCartItems
+} from '../services/api';
+import { useNavigate } from 'react-router-dom';
+
 const Library = () => {
-  
- 
-  const generateBooks = () => {
-    const genres = ['Fiction', 'Science Fiction', 'Fantasy', 'Mystery', 'Romance', 'Thriller', 'Horror', 'Biography', 'History', 'Science', 'Technology', 'Business', 'Self-Help', 'Cooking', 'Travel', 'Art', 'Philosophy', 'Poetry', 'Drama', 'Comedy'];
-    const authors = [
-      'James Patterson', 'Stephen King', 'J.K. Rowling', 'George R.R. Martin', 'Agatha Christie',
-      'Dan Brown', 'John Grisham', 'Michael Crichton', 'Isaac Asimov', 'Arthur C. Clarke',
-      'Frank Herbert', 'Ray Bradbury', 'Margaret Atwood', 'Toni Morrison', 'Ernest Hemingway',
-      'F. Scott Fitzgerald', 'Jane Austen', 'Charles Dickens', 'Mark Twain', 'Leo Tolstoy',
-      'Fyodor Dostoevsky', 'Haruki Murakami', 'Gabriel Garcia Marquez', 'Chimamanda Ngozi',
-      'Yuval Noah Harari', 'Malcolm Gladwell', 'Brene Brown', 'Eckhart Tolle', 'Ryan Holiday'
-    ];
-    
-    const bookTitles = [
-      'The Silent Forest', 'Echoes of Tomorrow', 'Whispers in the Dark', 'The Last Emperor',
-      'Beyond the Horizon', 'Digital Dreams', 'Quantum Legacy', 'The Forgotten Kingdom',
-      'Shadows of the Past', 'The Golden Compass', 'Midnight Sun', 'Eternal Flame',
-      'The Crystal Key', 'Ocean\'s Depth', 'Mountain Peak', 'Desert Winds', 'Urban Legends',
-      'The Secret Garden', 'Lost Civilization', 'Time Traveler', 'Space Odyssey',
-      'Artificial Intelligence', 'Virtual Reality', 'Cyber Dreams', 'Neural Networks',
-      'The Art of War', 'Peaceful Mind', 'Mindful Living', 'Digital Nomad', 'Startup Dreams',
-      'Business Mastery', 'Financial Freedom', 'Wealth Building', 'Health Revolution',
-      'Fitness Journey', 'Culinary Arts', 'World Cuisine', 'Travel Diaries', 'Adventure Awaits',
-      'Mystery Island', 'Hidden Treasure', 'Ancient Secrets', 'Modern Problems',
-      'Future World', 'Past Lives', 'Present Moment', 'Digital Age', 'Information Era',
-      'Knowledge Quest', 'Learning Path', 'Education Revolution', 'Creative Mind'
-    ];
-
-    const books = [];
-    
-    for (let i = 1; i <= 120; i++) {
-      const genre = genres[Math.floor(Math.random() * genres.length)];
-      const author = authors[Math.floor(Math.random() * authors.length)];
-      const title = bookTitles[Math.floor(Math.random() * bookTitles.length)] + ` ${Math.floor(Math.random() * 1000)}`;
-      
-      books.push({
-        id: i,
-        title: title,
-        author: author,
-        price: parseFloat((Math.random() * 50 + 5).toFixed(2)),
-        image: `https://picsum.photos/300/400?random=${i}`,
-        description: `A captivating ${genre.toLowerCase()} novel that will keep you on the edge of your seat. This masterpiece by ${author} explores deep themes and takes readers on an unforgettable journey through imagination and reality.`,
-        genre: genre,
-        rating: parseFloat((Math.random() * 2 + 3).toFixed(1)),
-        pages: Math.floor(Math.random() * 500 + 100),
-        year: Math.floor(Math.random() * 50 + 1970)
-      });
-    }
-    
-    return books;
-  };
-
-  const initialBooks = generateBooks();
-  const [books, setBooks] = useState(initialBooks);
+  const [books, setBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('title');
   const [filterGenre, setFilterGenre] = useState('all');
-  const [hoveredBook, setHoveredBook] = useState(null);
+  const [genres, setGenres] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const navigate = useNavigate();
 
-  
-  const genres = ['all', ...new Set(initialBooks.map(book => book.genre))];
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        setLoading(true);
+        const response = await getBooks();
+        setBooks(response.data);
+        setSearchResults(response.data);
+        
+        const uniqueGenres = [...new Set(response.data.map(book => book.genre).filter(Boolean))];
+        setGenres(['all', ...uniqueGenres]);
+        
+        console.log(`Loaded ${response.data.length} books from database`);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchBooks();
+  }, []);
+
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      try {
+        const response = await getCartItems();
+        setCartCount(response.data.length);
+      } catch (error) {
+        console.error('Error fetching cart count:', error);
+        setCartCount(0);
+      }
+    };
+
+    fetchCartCount();
+  }, []);
+
+  useEffect(() => {
+    const searchBooksFromDB = async () => {
+      if (searchTerm.trim() === '') {
+        try {
+          const response = await getBooks();
+          setSearchResults(response.data);
+        } catch (error) {
+          console.error('Error fetching books:', error);
+        }
+        return;
+      }
+
+      try {
+        setSearchLoading(true);
+        const response = await searchBooks(searchTerm);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('Error searching books:', error);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      searchBooksFromDB();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const filterBooksFromDB = async () => {
+      if (filterGenre === 'all') {
+        try {
+          const response = await getBooks();
+          setSearchResults(response.data);
+        } catch (error) {
+          console.error('Error fetching all books:', error);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await filterBooksByGenre(filterGenre);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('Error filtering books:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    filterBooksFromDB();
+  }, [filterGenre]);
 
   const filteredAndSortedBooks = useMemo(() => {
-    let filtered = books.filter(book => 
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.genre.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (filterGenre !== 'all') {
-      filtered = filtered.filter(book => book.genre === filterGenre);
-    }
-
-    return filtered.sort((a, b) => {
+    return [...searchResults].sort((a, b) => {
       switch (sortOption) {
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'author':
-          return a.author.localeCompare(b.author);
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        case 'rating':
-          return b.rating - a.rating;
-        case 'year':
-          return b.year - a.year;
-        default:
-          return 0;
+        case 'title': return a.title.localeCompare(b.title);
+        case 'author': return a.author.localeCompare(b.author);
+        case 'price-low': return parseFloat(a.price) - parseFloat(b.price);
+        case 'price-high': return parseFloat(b.price) - parseFloat(a.price);
+        case 'rating': return parseFloat(b.rating) - parseFloat(a.rating);
+        case 'year': return parseInt(b.published_year) - parseInt(a.published_year);
+        default: return 0;
       }
     });
-  }, [books, searchTerm, sortOption, filterGenre]);
-  
-const addToCart = (book) => {
-  const savedCart = localStorage.getItem('bookStoreCart');
-  const currentCart = savedCart ? JSON.parse(savedCart) : [];
-  
-  
-  const existingItem = currentCart.find(item => item.id === book.id);
-  
-  if (existingItem) {
-    
-    existingItem.quantity += 1;
-  } else {
-    
-    currentCart.push({ ...book, quantity: 1 });
-  }
-  
-  localStorage.setItem('bookStoreCart', JSON.stringify(currentCart));
-  alert(`Added "${book.title}" to cart!`);
-};
+  }, [searchResults, sortOption]);
 
-const quickCheckout = (book) => {
-  const savedCart = localStorage.getItem('bookStoreCart');
-  const currentCart = savedCart ? JSON.parse(savedCart) : [];
-  
-  
-  const quickCart = [{ ...book, quantity: 1 }];
-  
-  localStorage.setItem('bookStoreCart', JSON.stringify(quickCart));
-  localStorage.setItem('isQuickCheckout', 'true');
-  
- 
-  window.location.href = '/cart';
-};
+  const addToCart = async (book) => {
+    try {
+      if (!book.id) {
+        alert('❌ Book ID is missing');
+        return;
+      }
+      
+      // Check if user is logged in
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('❌ Please login to add items to cart');
+        navigate('/');
+        return;
+      }
+      
+      const response = await addToCartAPI(book.id);
+      
+      if (response.data.success) {
+        // Update cart count locally
+        setCartCount(prev => prev + 1);
+        alert(`✅ Added "${book.title}" to cart!`);
+      } else {
+        alert(`❌ ${response.data.error || 'Failed to add to cart'}`);
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      if (error.message === 'User not logged in') {
+        alert('❌ Please login to add items to cart');
+        navigate('/');
+      } else {
+        alert(`❌ ${error.response?.data?.error || 'Error adding to cart'}`);
+      }
+    }
+  };
+
+  const quickCheckout = async (book) => {
+    try {
+      if (!book.id) {
+        alert('❌ Book ID is missing');
+        return;
+      }
+      
+      // Check if user is logged in
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('❌ Please login to checkout');
+        navigate('/');
+        return;
+      }
+      
+      // SIMPLIFIED: Just add to cart and navigate
+      const response = await addToCartAPI(book.id);
+      
+      if (response.data.success) {
+        // Update cart count
+        setCartCount(prev => prev + 1);
+        navigate('/cart');
+      }
+    } catch (error) {
+      console.error('Error in quick checkout:', error);
+      alert(`❌ ${error.message}`);
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterGenre('all');
+    setSortOption('title');
+  };
+
+  if (loading && books.length === 0) {
+    return (
+      <>
+        <Navbar cartCount={cartCount} />
+        <div className="library-container">
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '50vh',
+            color: 'white',
+            fontSize: '1.5rem',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div className="spinner"></div>
+            Loading books...
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
-       <>
-          <Navbar />
-    <div className="library-container">
-    
-      <div className="animated-background"></div>
-      
-     
-      <div className="controls-section">
-        <div className="search-container">
-          <input
-            type="text"
-            placeholder="🔍 Search books, authors, or genres..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
+    <>
+      <Navbar cartCount={cartCount} />
+      <div className="library-container">
+        <div className="animated-background"></div>
+        
+        <div className="library-header">
+          <h1 className="library-title">Digital Library</h1>
+          <p className="library-subtitle">
+            Browse our collection of {books.length} books
+          </p>
         </div>
 
-        <div className="filter-sort-container">
-          <select 
-            value={filterGenre} 
-            onChange={(e) => setFilterGenre(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Genres</option>
-            {genres.filter(genre => genre !== 'all').map(genre => (
-              <option key={genre} value={genre}>
-                {genre}
-              </option>
-            ))}
-          </select>
+        <div className="controls-section">
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="🔍 Search books, authors, or genres..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            {searchLoading && <div className="search-loading">Searching...</div>}
+          </div>
 
-          <select 
-            value={sortOption} 
-            onChange={(e) => setSortOption(e.target.value)}
-            className="sort-select"
-          >
-            <option value="title">Sort by Title</option>
-            <option value="author">Sort by Author</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="rating">Sort by Rating</option>
-            <option value="year">Sort by Year</option>
-          </select>
+          <div className="filter-sort-container">
+            <select 
+              value={filterGenre} 
+              onChange={(e) => setFilterGenre(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Genres</option>
+              {genres.filter(genre => genre !== 'all').map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+
+            <select 
+              value={sortOption} 
+              onChange={(e) => setSortOption(e.target.value)}
+              className="sort-select"
+            >
+              <option value="title">Sort by Title</option>
+              <option value="author">Sort by Author</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Sort by Rating</option>
+              <option value="year">Sort by Year</option>
+            </select>
+
+            {(searchTerm || filterGenre !== 'all' || sortOption !== 'title') && (
+              <button onClick={resetFilters} className="reset-filters-btn">
+                Reset Filters
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="results-count">
-        Showing {filteredAndSortedBooks.length} of {books.length} books
-      </div>
+        <div className="results-count">
+          Showing {filteredAndSortedBooks.length} of {books.length} books
+          {searchTerm && ` for "${searchTerm}"`}
+        </div>
 
-      
-      <div className="library-content">
-        <div className="books-grid-container">
-          <div className="books-grid">
-            {filteredAndSortedBooks.map(book => (
-              <div 
-                key={book.id} 
-                className="book-card"
-                onMouseEnter={() => setHoveredBook(book)}
-                onMouseLeave={() => setHoveredBook(null)}
-              >
-                <div className="book-image-container">
-                  <img src={book.image} alt={book.title} className="book-image" />
-                  <div className="book-overlay">
-                    <button 
-                      className="add-to-cart-btn"
-                      onClick={() => addToCart(book)}
-                    >
-                      🛒 Add to Cart
-                    </button>
-                    <button 
-                      className="quick-checkout-btn"
-                      onClick={() => quickCheckout(book)}
-                    >
-                      ⚡ Quick Checkout
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="book-info">
-                  <h3 className="book-title">{book.title}</h3>
-                  <p className="book-author">by {book.author}</p>
-                  <div className="book-meta">
-                    <span className="book-genre">{book.genre}</span>
-                    <span className="book-rating">⭐ {book.rating}</span>
-                  </div>
-                  <div className="book-details">
-                    <span className="book-year">{book.year}</span>
-                    <span className="book-pages">{book.pages} pages</span>
-                  </div>
-                  <p className="book-price">${book.price}</p>
-                </div>
+        <div className="floating-cart-btn">
+          <button className="cart-icon-btn" onClick={() => navigate('/cart')}>
+            🛒
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+          </button>
+        </div>
 
-                
-                {hoveredBook?.id === book.id && (
-                  <div className="book-description">
-                    <h4>About this book:</h4>
-                    <p>{book.description}</p>
-                    <div className="description-actions">
-                      <button 
-                        className="description-add-cart"
-                        onClick={() => addToCart(book)}
-                      >
-                        Add to Cart
-                      </button>
-                      <button 
-                        className="description-checkout"
-                        onClick={() => quickCheckout(book)}
-                      >
-                        Quick Checkout
-                      </button>
+        <div className="library-content">
+          <div className="books-grid-container">
+            {filteredAndSortedBooks.length === 0 ? (
+              <div className="no-books-found">
+                <h3>📚 No books found</h3>
+                <button onClick={resetFilters} className="show-all-btn">
+                  Show All Books
+                </button>
+              </div>
+            ) : (
+              <div className="books-grid">
+                {filteredAndSortedBooks.map(book => (
+                  <div key={book.id} className="book-card">
+                    <div className="book-image-container">
+                      <img 
+                        src={book.image_url || `https://picsum.photos/300/400?random=${book.id}`} 
+                        alt={book.title} 
+                        className="book-image" 
+                      />
+                      <div className="book-overlay">
+                        <button 
+                          className="add-to-cart-btn"
+                          onClick={() => addToCart(book)}
+                        >
+                          🛒 Add to Cart
+                        </button>
+                        <button 
+                          className="quick-checkout-btn"
+                          onClick={() => quickCheckout(book)}
+                        >
+                          ⚡ Quick Buy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="book-info">
+                      <h3 className="book-title">{book.title}</h3>
+                      <p className="book-author">by {book.author}</p>
+                      <div className="book-meta">
+                        <span className="book-genre">{book.genre || 'Unknown'}</span>
+                        <span className="book-rating">⭐ {book.rating || '4.0'}</span>
+                      </div>
+                      <p className="book-price">${parseFloat(book.price || 0).toFixed(2)}</p>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
-
-
- 
-    </div>
-   </>
+    </>
   );
 };
 

@@ -1,211 +1,270 @@
+
 import React, { useState, useEffect } from 'react';
-import Navbar from '../Components/NavBar';
 import '../Styles/Cart.css';
+import CartItem from '../Components/CartItem';
+import { 
+  getCartItems,
+  removeFromCart,
+  clearCart
+} from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
-  const [isQuickCheckout, setIsQuickCheckout] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const navigate = useNavigate();
 
- 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('bookStoreCart');
-    const quickCheckout = localStorage.getItem('isQuickCheckout');
-    
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-    
-    if (quickCheckout) {
-      setIsQuickCheckout(JSON.parse(quickCheckout));
+  const fetchCartData = async () => {
+    try {
+      setLoading(true);
+      const user = JSON.parse(localStorage.getItem('user'));
       
-      localStorage.removeItem('isQuickCheckout');
+      if (!user) {
+        setError('Please login to view your cart');
+        setCartItems([]);
+        setLoading(false);
+        return;
+      }
+      
+      const response = await getCartItems();
+      
+      const formattedItems = response.data.map(item => {
+        let price = 0;
+        if (item.price) {
+          if (typeof item.price === 'number') {
+            price = item.price;
+          } else if (typeof item.price === 'string') {
+            price = parseFloat(item.price);
+            if (isNaN(price)) price = 0;
+          }
+        }
+        
+        return {
+          ...item,
+          id: item.id,
+          price: price
+        };
+      });
+      
+      setCartItems(formattedItems);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching cart:', err);
+      setError('Failed to load cart');
+      setCartItems([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchCartData();
   }, []);
 
+  const handleRemoveItem = async (cartItemId) => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('Please login to manage cart');
+        navigate('/');
+        return;
+      }
 
-  useEffect(() => {
-    localStorage.setItem('bookStoreCart', JSON.stringify(cartItems));
-  }, [cartItems]);
+      const response = await removeFromCart(cartItemId);
+      
+      if (response.data.success) {
+        setCartItems(prevItems => 
+          prevItems.filter(item => item.id != cartItemId)
+        );
+        setSuccessMessage('Item removed!');
+        setError(null);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Error removing item:', err);
+      setError('Failed to remove item');
+    }
+  };
 
-  const updateQuantity = (bookId, newQuantity) => {
-    if (newQuantity < 1) return;
+  const handleClearCart = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('Please login to manage cart');
+        navigate('/');
+        return;
+      }
+
+      if (!window.confirm('Are you sure you want to clear your entire cart?')) {
+        return;
+      }
+
+      const response = await clearCart();
+      
+      if (response.data.success) {
+        setCartItems([]);
+        setSuccessMessage('Cart cleared successfully!');
+        setError(null);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Error clearing cart:', err);
+      setError('Failed to clear cart');
+    }
+  };
+
+  const handleCheckout = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('Please login to checkout');
+        navigate('/');
+        return;
+      }
+
+      if (cartItems.length === 0) {
+        alert('Your cart is empty!');
+        return;
+      }
+
+      // Calculate total
+      const total = cartItems.reduce((sum, item) => {
+        const price = item.price || 0;
+        const quantity = item.quantity || 1;
+        return sum + (price * quantity);
+      }, 0);
+      
+      // Ask for confirmation
+      if (!window.confirm(`Confirm purchase of ${cartItems.length} item(s) for $${total.toFixed(2)}?`)) {
+        return;
+      }
+      
+      // SIMPLIFIED: Just clear the cart locally (no API call for now)
+      setCartItems([]);
+      alert(`✅ Order placed successfully!\nTotal: $${total.toFixed(2)}\nThank you for your purchase!`);
+      
+      setSuccessMessage('Order placed successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+    } catch (err) {
+      console.error('Error during checkout:', err);
+      alert('Order placed! (Cart cleared locally)');
+      setCartItems([]);
+    }
+  };
+
+  const calculateOrderSummary = () => {
+    const subtotal = cartItems.reduce((sum, item) => {
+      const price = item.price || 0;
+      const quantity = item.quantity || 1;
+      return sum + (price * quantity);
+    }, 0);
     
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === bookId ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-
-  const removeFromCart = (bookId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== bookId));
-  };
-
- 
-  const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0).toFixed(2);
-  };
-
-  
-  const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      alert('Your cart is empty!');
-      return;
-    }
-
-    alert(`Order confirmed! Total: $${calculateTotal()}\nThank you for your purchase!`);
+    const tax = subtotal * 0.10;
+    const shipping = subtotal > 50 ? 0 : 5.99;
+    const total = subtotal + tax + shipping;
     
-  
-    setCartItems([]);
-    localStorage.removeItem('bookStoreCart');
+    return {
+      subtotal: subtotal.toFixed(2),
+      tax: tax.toFixed(2),
+      shipping: shipping.toFixed(2),
+      total: total.toFixed(2),
+      shippingText: shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`
+    };
   };
 
-  
-  const handleQuickCheckout = () => {
-    if (isQuickCheckout && cartItems.length > 0) {
-      handleCheckout();
-    }
-  };
+  const orderSummary = calculateOrderSummary();
 
-  
-  useEffect(() => {
-    if (isQuickCheckout && cartItems.length > 0) {
-      handleQuickCheckout();
-    }
-  }, [isQuickCheckout, cartItems]);
-
-  if (cartItems.length === 0) {
+  if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="cart-container">
-          <div className="cart-empty">
-            <h2>Your Cart is Empty</h2>
-            <p>Add some books to get started!</p>
-            <button 
-              className="browse-books-btn"
-              onClick={() => window.location.href = '/library'}
-            >
-              Browse Books
-            </button>
-          </div>
-        </div>
-      </>
+      <div className="cart-container">
+        <h1>OnlineBookStore - Shopping Cart</h1>
+        <div className="loading">Loading cart...</div>
+      </div>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="cart-container">
-        <div className="cart-header">
-          <h1>Shopping Cart</h1>
-          {isQuickCheckout && (
-            <div className="quick-checkout-banner">
-              ⚡ Quick Checkout - Review your order below
+    <div className="cart-container">
+      <h1>OnlineBookStore - Shopping Cart</h1>
+      
+      {successMessage && (
+        <div className="success-message">✅ {successMessage}</div>
+      )}
+      
+      {error && (
+        <div className="error-message">❌ {error}</div>
+      )}
+      
+      <div className="cart-content">
+        <div className="cart-items-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2>Your Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})</h2>
+            {cartItems.length > 0 && (
+              <button onClick={handleClearCart} className="clear-cart-btn">
+                Clear All
+              </button>
+            )}
+          </div>
+          
+          {cartItems.length === 0 ? (
+            <div className="empty-cart">
+              <p style={{fontSize: '1.2rem', marginBottom: '20px', color: '#666'}}>
+                {localStorage.getItem('user') ? 'Your shopping cart is empty' : 'Please login to view your cart'}
+              </p>
+              {!localStorage.getItem('user') ? (
+                <a href="/" className="continue-shopping-btn">← Go to Login</a>
+              ) : (
+                <a href="/home" className="continue-shopping-btn">← Continue Shopping</a>
+              )}
+            </div>
+          ) : (
+            <div className="cart-items-list">
+              {cartItems.map((item) => (
+                <CartItem key={item.id} item={item} onRemoveItem={handleRemoveItem} />
+              ))}
             </div>
           )}
         </div>
-
-        <div className="cart-content">
-          <div className="cart-items">
-            {cartItems.map(item => (
-              <div key={item.id} className="cart-item">
-                <div className="item-image">
-                  <img src={item.image} alt={item.title} />
-                </div>
-                
-                <div className="item-details">
-                  <h3 className="item-title">{item.title}</h3>
-                  <p className="item-author">by {item.author}</p>
-                  <p className="item-genre">{item.genre}</p>
-                  <div className="item-rating">⭐ {item.rating}</div>
-                </div>
-
-                <div className="item-controls">
-                  <div className="quantity-controls">
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      disabled={item.quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <span>{item.quantity}</span>
-                    <button 
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
-                  
-                  <button 
-                    className="remove-btn"
-                    onClick={() => removeFromCart(item.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="item-price">
-                  <div className="price-total">${(item.price * item.quantity).toFixed(2)}</div>
-                  <div className="price-unit">${item.price} each</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="cart-summary">
+        
+        {cartItems.length > 0 && (
+          <div className="order-summary">
             <h3>Order Summary</h3>
-            
-            <div className="summary-row">
-              <span>Subtotal ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items):</span>
-              <span>${calculateTotal()}</span>
+            <div className="summary-details">
+              <div className="summary-row">
+                <span>Subtotal ({cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0)} items):</span>
+                <span style={{fontWeight: '600'}}>${orderSummary.subtotal}</span>
+              </div>
+              <div className="summary-row">
+                <span>Shipping:</span>
+                <span style={{color: '#28a745', fontWeight: '600'}}>{orderSummary.shippingText}</span>
+              </div>
+              <div className="summary-row">
+                <span>Tax (10%):</span>
+                <span>${orderSummary.tax}</span>
+              </div>
+              <div className="summary-row total">
+                <span>Total Amount:</span>
+                <span style={{fontSize: '1.4rem', fontWeight: '700', color: '#2d3748'}}>
+                  ${orderSummary.total}
+                </span>
+              </div>
             </div>
             
-            <div className="summary-row">
-              <span>Shipping:</span>
-              <span>Free</span>
-            </div>
-            
-            <div className="summary-row">
-              <span>Tax:</span>
-              <span>${(calculateTotal() * 0.1).toFixed(2)}</span>
-            </div>
-            
-            <div className="summary-divider"></div>
-            
-            <div className="summary-row total">
-              <span>Total:</span>
-              <span>${(parseFloat(calculateTotal()) + parseFloat(calculateTotal() * 0.1)).toFixed(2)}</span>
-            </div>
-
-            {isQuickCheckout ? (
-              <button 
-                className="checkout-btn quick-checkout"
-                onClick={handleCheckout}
-              >
-                ⚡ Complete Quick Checkout
-              </button>
-            ) : (
-              <button 
-                className="checkout-btn"
-                onClick={handleCheckout}
-              >
-                Proceed to Checkout
-              </button>
-            )}
-
-            <button 
-              className="continue-shopping-btn"
-              onClick={() => window.location.href = '/library'}
-            >
-              Continue Shopping
+            <button className="checkout-btn" onClick={handleCheckout}>
+              Proceed to Checkout
             </button>
+            
+            <div className="cart-actions">
+              <a href="/home" className="continue-link">← Continue Shopping</a>
+              <a href="/library" className="back-link">Browse More Books →</a>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
