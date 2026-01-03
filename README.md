@@ -92,7 +92,7 @@ _User authentication with registration and login options_
 _Welcome dashboard with featured books and navigation_
 
 ### 3. Library Page
-![Library Page](screenshots/library.png)
+![Library Page](screenshots/Library.png)
 _Book browsing interface with search, filters, and book cards_
 
 ### 4. Shopping Cart
