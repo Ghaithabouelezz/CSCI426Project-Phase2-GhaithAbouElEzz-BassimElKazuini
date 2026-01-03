@@ -84,11 +84,11 @@ Begin exploring the library
 ## 📸 Application Screenshots
 
 ### 1. Login Page
-![Login Page](screenshots/login.png)
+![Login Page](screenshots/Login.png)
 _User authentication with registration and login options_
 
 ### 2. Home Page
-![Home Page](screenshots/home.png)
+![Home Page](screenshots/Home.png)
 _Welcome dashboard with featured books and navigation_
 
 ### 3. Library Page
@@ -96,11 +96,11 @@ _Welcome dashboard with featured books and navigation_
 _Book browsing interface with search, filters, and book cards_
 
 ### 4. Shopping Cart
-![Cart Page](screenshots/cart.png)
+![Cart Page](screenshots/Cart.png)
 _Shopping cart with item management and checkout options_
 
 ### 5. Contact Page
-![Contact Page](screenshots/contact.png)
+![Contact Page](screenshots/Contact.png)
 _Contact form and information section_
 
 
