@@ -1,70 +1,106 @@
-# Getting Started with Create React App
+# Project Description
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-featured digital library platform built with React and Node.js that provides users with a seamless book browsing and purchasing experience. The system features secure user authentication, an interactive book catalog with advanced search capabilities, and a complete shopping cart workflow.
 
-## Available Scripts
+# Key Features:
 
-In the project directory, you can run:
+User Authentication – Secure registration and login system with MySQL database storage
 
-### `npm start`
+Home Dashboard – Personalized book recommendations and featured selections
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Interactive Library – Browse 120+ books with real-time search, filtering, and sorting options
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Smart Shopping Cart – Add/remove books, adjust quantities, and review orders
 
-### `npm test`
+Checkout Process – Complete purchase with order summary and total calculation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Modern Interface – Responsive design with smooth animations and intuitive navigation
 
-### `npm run build`
+# User Flow:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Registration/Login → Users create accounts or sign in securely
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Home Exploration → Discover suggested and featured books
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Library Browsing → Search, filter, and explore the complete book collection
 
-### `npm run eject`
+Cart Management → Add desired books to cart with quantity control
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Purchase Confirmation → Review order and complete checkout
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+ # Setup & Installation
+Prerequisites:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Node.js (v16 or higher)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+XAMPP (for MySQL database)
 
-## Learn More
+Git
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Step-by-Step Setup:
+Start Database Services:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Launch XAMPP Control Panel
 
-### Code Splitting
+Start Apache and MySQL services
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Open phpMyAdmin at http://localhost/phpmyadmin
 
-### Analyzing the Bundle Size
+Create Database:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+ # sql:  
 
-### Making a Progressive Web App
+CREATE DATABASE login;
+USE login;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+); 
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# Launch Backend Server:
 
-### Advanced Configuration
+bash
+cd backend
+npm install
+npm start
+# Server available at http://localhost:5000
+Launch Frontend Application:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+bash
+npm install
+npm start
+# Application available at http://localhost:3000
+Access the Platform:
 
-### Deployment
+Open browser
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Navigate to http://localhost:3000
 
-### `npm run build` fails to minify
+Register new account or login
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Begin exploring the library
+
+## 📸 Screenshots
+
+### 1. Login Page
+![Login Page](login.png)
+*User authentication with registration and login options*
+
+### 2. Home Page
+![Home Page](home.png)
+*Welcome dashboard with featured books and navigation*
+
+### 3. Library Page  
+![Library Page](library.png)
+*Book browsing interface with search, filters, and book cards*
+
+### 4. Shopping Cart
+![Cart Page](cart.png)
+*Shopping cart with item management and checkout options*
+
+### 5. Contact Page
+![Contact Page](contact.png)
+*Contact form and information section*
+
+
