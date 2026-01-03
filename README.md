@@ -81,26 +81,26 @@ Register new account or login
 
 Begin exploring the library
 
-## 📸 Screenshots
+## 📸 Application Screenshots
 
 ### 1. Login Page
-![Login Page](login.png)
-*User authentication with registration and login options*
+![Login Page](screenshots/login.png)
+_User authentication with registration and login options_
 
 ### 2. Home Page
-![Home Page](home.png)
-*Welcome dashboard with featured books and navigation*
+![Home Page](screenshots/home.png)
+_Welcome dashboard with featured books and navigation_
 
-### 3. Library Page  
-![Library Page](library.png)
-*Book browsing interface with search, filters, and book cards*
+### 3. Library Page
+![Library Page](screenshots/library.png)
+_Book browsing interface with search, filters, and book cards_
 
 ### 4. Shopping Cart
-![Cart Page](cart.png)
-*Shopping cart with item management and checkout options*
+![Cart Page](screenshots/cart.png)
+_Shopping cart with item management and checkout options_
 
 ### 5. Contact Page
-![Contact Page](contact.png)
-*Contact form and information section*
+![Contact Page](screenshots/contact.png)
+_Contact form and information section_
 
 
