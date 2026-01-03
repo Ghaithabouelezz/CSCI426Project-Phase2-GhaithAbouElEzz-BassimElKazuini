@@ -64,18 +64,18 @@ bash
 cd backend
 npm install
 npm start
-# Server available at http://localhost:5000
-Launch Frontend Application:
+# Server available at https://bookstore-backend-production-5d76.up.railway.app/
+Launch Frontend Application:https://bookstore-frontend-gamma-seven.vercel.app/
 
 bash
 npm install
 npm start
-# Application available at http://localhost:3000
+# Application available at https://bookstore-frontend-gamma-seven.vercel.app/
 Access the Platform:
 
 Open browser
 
-Navigate to http://localhost:3000
+Navigate to https://bookstore-frontend-gamma-seven.vercel.app/
 
 Register new account or login
 
